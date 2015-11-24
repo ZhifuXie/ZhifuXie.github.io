@@ -1,0 +1,1311 @@
+package Plot3D;
+
+import java.awt.event.*;
+import java.awt.*;
+import java.applet.*;
+import java.awt.image.*;
+import java.util.*;
+import java.io.*;
+import java.net.*;
+
+import java.lang.StrictMath.*;
+import java.lang.*;
+
+public class Plot3D
+    extends Applet implements Runnable, MouseListener, MouseMotionListener,
+    ActionListener {
+
+  int nplanet = 0, maxplanet = 10;
+  Planet planet[];
+  double rotX = 0, rotY = 0;
+  long framenum = 0;
+  private Thread thread;
+
+  int sw = 14000, sh = 1200;
+  int w = 1200, h = 1000;
+  float posX, posY, posZ;
+  int prevX, prevY;
+  int curFile = 1;
+  int shadeOfRed=255;
+  boolean pause = false;
+  boolean altDown = false;
+  boolean disTrack = false;
+  boolean cmon = true;
+  int cameraView = 0;
+
+  Matrix3D mat;
+
+  Image buffer;
+  Graphics buffer_g;
+  Canvas canvas1 = new Canvas();
+  Label lblTitle = new Label();
+  Button btnPause = new Button();
+  Button btnStart = new Button();
+  TextArea txtCoord = new TextArea();
+  Label lblCoord = new Label();
+  Scrollbar scrollSpeed = new Scrollbar();
+  Scrollbar tailLen = new Scrollbar();
+  Label lblSpeed = new Label();
+  Button btnView = new Button();
+  Button btnOrigin = new Button();
+  TextField setPx = new TextField();
+  TextField setPy = new TextField(); 
+  TextField setPz = new TextField();
+  TextField setRx = new TextField();
+  TextField setRy = new TextField();
+  TextField frameCount = new TextField();
+  Button btnSnap = new Button();
+  Button CenMass = new Button();
+  Button NetVel = new Button();
+  TextField stoptime = new TextField();
+  Button iterate = new Button();
+  TextField tracker1 = new TextField();
+  TextField tracker2 = new TextField();
+  TextField trackerR = new TextField();
+  Button cameraType = new Button();
+  
+  
+  vector vOrigin = new vector();
+  vector vX = new vector();
+  vector vY = new vector();
+  vector vZ = new vector();
+  vector cameraPos = new vector();
+  vector prevPos = new vector();
+  Color colors[];
+  Button btnPrev = new Button();
+  Button btnNext = new Button();
+  Button btnSave = new Button();
+  Scrollbar scrollTail = new Scrollbar();
+
+  int pCenter = 0;
+  
+  /**Construct the applet*/
+  public Plot3D() {
+    colors = new Color[12];
+    colors[0] = new Color(255, 0, 0);
+    colors[1] = new Color(0, 255, 0);
+    colors[2] = new Color(0, 0, 255);
+    colors[3] = new Color(255, 255, 0);
+    colors[4] = new Color(0, 255, 255);
+    colors[5] = new Color(255, 0, 255);
+    colors[6] = new Color(255, 128, 128);
+    colors[7] = new Color(128, 255, 128);
+    colors[8] = new Color(128, 128, 255);
+    colors[9] = new Color(255, 255, 255);
+	colors[10] = new Color(0,0,0);
+	colors[11] = new Color(196,196,196);
+  }
+
+  public void main() {
+    init();
+  }
+
+  /**Initialize the applet*/
+  public void init() {
+    try {
+      jbInit();
+    }
+    catch (Exception e) {
+      e.printStackTrace();
+    }
+  }
+
+  private void jbInit() throws Exception {
+    this.setLayout(null);
+    this.setSize(new Dimension(627, 722));
+
+    resize(w, h);
+
+    mat = new Matrix3D();
+    vOrigin.set(0, 0, 0);
+    vX.set(10, 0, 0);
+    vY.set(0, 10, 0);
+    vZ.set(0, 0, 10);
+
+
+    this.setBackground(new Color(128,128,128));
+
+    canvas1.addMouseListener(this);
+    canvas1.addMouseMotionListener(this);
+    canvas1.setBackground(new Color(128,128,128));
+    canvas1.setForeground(new Color(128,128,128));
+    canvas1.setBounds(new Rectangle(134, 191, 1169, 1010));
+
+    lblTitle.setFont(new java.awt.Font("Dialog", 1, 16));
+    lblTitle.setText("3D Planetary Motion Plotter");
+    lblTitle.setBounds(new Rectangle(130, 10, 250, 30));
+
+    lblCoord.setText("Planet Positions:");
+    lblCoord.setBounds(new Rectangle(7, 58, 120, 14));
+
+    txtCoord.setColumns(4);
+    txtCoord.setRows(20);
+    txtCoord.setBounds(new Rectangle(10, 82, 500, 100));
+    txtCoord.setText("0.001\n" +
+                     "1.5582,   0, 0, 0, -0.5958,  0, 1," + "\n" +
+                     "0.8964, 0, 0, 0, 2.5091, 0, 5," + "\n" +
+                     "-0.6040, 0, 0, 0, -1.1950, 0, 10,");
+    
+    frameCount.setColumns(10);
+    frameCount.setBounds(new Rectangle(10,58,100,25));
+	
+    btnPrev.setActionCommand("prev");
+    btnPrev.addActionListener(this);
+    btnPrev.setLabel("<");
+    btnPrev.setBounds(new Rectangle(12, 187, 38, 25));
+    btnPrev.setBackground(Color.white);
+
+    btnNext.setActionCommand("next");
+    btnNext.addActionListener(this);
+    btnNext.setLabel(">");
+    btnNext.setBounds(new Rectangle(54, 187, 38, 25));
+    btnNext.setBackground(Color.white);
+
+    btnStart.addActionListener(this);
+    btnStart.setBounds(new Rectangle(12, 217, 80, 25));
+    btnStart.setLabel("Start");
+    btnStart.setActionCommand("start");
+    btnStart.setBackground(Color.white);
+
+    btnPause.setActionCommand("pause");
+    btnPause.setBackground(Color.white);
+    btnPause.setLabel("Pause");
+    btnPause.setBounds(new Rectangle(12, 247, 80, 25));
+    btnPause.addActionListener(this);
+
+    btnView.setBackground(Color.white);
+    btnView.setLabel("Center");
+    btnView.setBounds(new Rectangle(12, 277, 80, 25));
+    btnView.setActionCommand("center");
+    btnView.addActionListener(this);
+
+    btnSave.setActionCommand("save");
+    btnSave.setBackground(Color.white);
+    btnSave.setLabel("Save");
+    btnSave.setBounds(new Rectangle(12, 307, 80, 25));
+    btnSave.addActionListener(this);
+
+    btnOrigin.setActionCommand("origin");
+    btnOrigin.addActionListener(this);
+    btnOrigin.setLabel("Origin");
+    btnOrigin.setBounds(new Rectangle(12,337,80,25));
+    btnOrigin.setBackground(Color.white);
+
+    lblSpeed.setText("Speed");
+    lblSpeed.setBounds(new Rectangle(12, 375, 110, 18));
+
+    scrollSpeed.setBackground(Color.white);
+    scrollSpeed.setForeground(Color.white);
+    scrollSpeed.setLocale(java.util.Locale.getDefault());
+    scrollSpeed.setMaximum(2500);
+    scrollSpeed.setMinimum(10);
+    scrollSpeed.setOrientation(0);
+    scrollSpeed.setUnitIncrement(10);
+    scrollSpeed.setValue(200);
+    scrollSpeed.setBounds(new Rectangle(12, 395, 103, 15));
+
+    scrollTail.setBackground(Color.white);
+    scrollTail.setEnabled(true);
+    scrollTail.setMaximum(10000);
+    scrollTail.setMinimum(0);
+    scrollTail.setOrientation(0);
+    scrollTail.setUnitIncrement(10);
+    scrollTail.setValue(2000);
+    scrollTail.setBounds(new Rectangle(12, 415, 103, 15));
+
+    tailLen.setBackground(Color.white);
+    tailLen.setEnabled(true);
+    tailLen.setMaximum(100);
+    tailLen.setMinimum(1);
+    tailLen.setOrientation(0);
+    tailLen.setUnitIncrement(1);
+    tailLen.setValue(50);
+    tailLen.setBounds(new Rectangle(12,435,103,15));
+
+    setPx.setColumns(5);
+    setPx.setBounds(new Rectangle(12, 455, 38, 20));
+    setPx.setText("0");
+    
+    setPy.setColumns(5);
+    setPy.setBounds(new Rectangle(52, 455, 38, 20));
+    setPy.setText("0");
+
+    setPz.setColumns(5);
+    setPz.setBounds(new Rectangle(92,455,38,20));
+    setPz.setText("30");
+
+    setRx.setColumns(5);
+    setRx.setBounds(new Rectangle(12,480,58,20));
+    setRx.setText("0");
+
+    setRy.setColumns(5);
+    setRy.setBounds(new Rectangle(72,480,58,20));
+    setRy.setText("0");
+
+    btnSnap.setActionCommand("Snap");
+    btnSnap.setBackground(Color.white);
+    btnSnap.setLabel("Snap");
+    btnSnap.setBounds(new Rectangle(12,505,80,25));
+    btnSnap.addActionListener(this);
+
+	CenMass.setActionCommand("TogMass");
+	CenMass.setBackground(Color.black);
+	CenMass.setForeground(Color.white);
+	CenMass.setLabel("C O M");
+	CenMass.setBounds(new Rectangle(12,535,80,25));
+	CenMass.addActionListener(this);
+	
+	NetVel.setActionCommand("TogVel");
+	NetVel.setBackground(Color.white);
+	NetVel.setLabel("DisTrack");
+	NetVel.setBounds(new Rectangle(12,620,80,25));
+	NetVel.addActionListener(this);
+	
+    stoptime.setColumns(5);
+    stoptime.setBounds(new Rectangle(12,595,80,20));
+    stoptime.setText("0");
+
+    iterate.setActionCommand("iterate");
+    iterate.setBackground(Color.white);
+    iterate.setLabel("Iterate");
+    iterate.setBounds(new Rectangle(12,565,80,25));
+    iterate.addActionListener(this);    
+
+    tracker1.setColumns(5);
+    tracker1.setBounds(new Rectangle(12,645,58,20));
+    tracker1.setText("0");
+    
+    tracker2.setColumns(5);
+    tracker2.setBounds(new Rectangle(72,645,58,20));
+    tracker2.setText("0");
+    
+    trackerR.setColumns(10);
+    trackerR.setBounds(new Rectangle(12,670,110,20));
+    trackerR.setText("0");
+    
+    cameraType.setActionCommand("CameraShift");
+    cameraType.setBackground(Color.white);
+    cameraType.setLabel("FreeCamera");
+    cameraType.setBounds(new Rectangle(12,695,80,25));
+    cameraType.addActionListener(this);
+    
+    this.add(canvas1, null);
+    this.add(lblTitle, null);
+    this.add(txtCoord, null);
+    this.add(frameCount,null);
+    this.add(btnStart, null);
+    this.add(btnPause, null);
+    this.add(btnView, null);
+    this.add(btnPrev, null);
+    this.add(btnNext, null);
+    this.add(scrollSpeed, null);
+    this.add(lblSpeed, null);
+    this.add(scrollTail, null);
+    this.add(btnSave, null);
+    this.add(btnOrigin,null);
+    this.add(setPx, null);
+    this.add(setPy, null);
+    this.add(setPz, null);
+    this.add(btnSnap, null);
+    this.add(setRx, null);
+    this.add(setRy, null);
+//  this.add(tailLen, null);
+	this.add(CenMass, null);
+	this.add(NetVel, null);
+    this.add(stoptime,null);
+    this.add(iterate);
+    this.add(tracker1,null);
+    this.add(tracker2,null);
+    this.add(trackerR,null);
+    this.add(cameraType,null);
+    ReadPlanets(1);
+    Center();
+    reStart();
+  }
+
+  void ReadPlanets(int i) {
+    try {
+      String line = "";
+      URL source = new URL(getCodeBase(), "planets" + i + ".txt");
+      BufferedReader input = new BufferedReader(new InputStreamReader(source.
+          openStream()));
+
+      txtCoord.setText("");
+      while ( (line = input.readLine()) != null) {
+        txtCoord.setText(txtCoord.getText() + line + "\n");
+      }
+      input.close();
+      curFile = i;
+      reStart();
+    }
+    catch (Exception e) {
+    }
+  }
+
+  void SavePlanets() {
+    txtCoord.setText(Planet.STEP + ",\n");
+    for (int i = 0; i < nplanet; i++) {
+      txtCoord.setText(txtCoord.getText() + planet[i].r.x + ", " +
+                       planet[i].r.y + ", " + planet[i].r.z + ", ");
+      txtCoord.setText(txtCoord.getText() + planet[i].v.x + ", " +
+                       planet[i].v.y + ", " + planet[i].v.z + ", ");
+      txtCoord.setText(txtCoord.getText() + planet[i].mass + "\n");
+    }
+    txtCoord.repaint();
+  }
+
+  void reStart() {
+    clearPlanet();
+    framenum = 0;
+    pause = true;
+    btnPause.setLabel("Resume");
+
+    double x, y, z, vx, vy, vz, m;
+    
+    Planet.LEN=1000;
+   
+    try {
+      String text = txtCoord.getText();
+      StringTokenizer st = new StringTokenizer(text, " ,\t\n\r\f");
+
+      Planet.STEP = Double.valueOf(st.nextToken()).doubleValue();
+
+      while (st.hasMoreElements()) {
+        x = Double.valueOf(st.nextToken()).doubleValue();
+        y = Double.valueOf(st.nextToken()).doubleValue();
+        z = Double.valueOf(st.nextToken()).doubleValue();
+        vx = Double.valueOf(st.nextToken()).doubleValue();
+        vy = Double.valueOf(st.nextToken()).doubleValue();
+        vz = Double.valueOf(st.nextToken()).doubleValue();
+        m = Double.valueOf(st.nextToken()).doubleValue();
+
+        addPlanet(x, y, z, vx, vy, vz, m);
+      }
+    }
+    catch (Exception e) {}
+  }
+
+  void clearPlanet() {
+    nplanet = 0;
+    maxplanet = 0;
+    planet = new Planet[maxplanet];
+    Planet cm = new Planet(0,0,0,0,0,0,1);
+    Planet nv = new Planet(0,0,0,0,0,0,1);
+  }
+
+  void addPlanet(double x, double y, double z, double vx, double vy, double vz,
+                 double m) {
+    if (nplanet >= maxplanet) {
+      maxplanet += 10;
+      Planet np[] = new Planet[maxplanet];
+      System.arraycopy(planet, 0, np, 0, planet.length);
+      planet = np;
+    }
+    planet[nplanet] = new Planet(x, y, z, vx, vy, vz, m);
+    planet[nplanet].id = nplanet;
+    nplanet++;
+  }
+
+  public void paint(Graphics g) {
+    prevPos.copy(cameraPos,1);
+    cameraPos = new vector();
+    if(nplanet==3)
+    {
+    
+	    vector r1 = new vector();
+		vector r2 = new vector();
+		r1.copy(planet[0].r,1);
+		r2.copy(planet[0].r,1);
+		r1.add(planet[1].r,-1);
+		r2.add(planet[2].r,-1);
+		cameraPos.cross(r1,r2);
+		//if(cameraPos.x<0) cameraPos.scalar(-1);
+		double dp = cameraPos.dot(prevPos);
+		if(cameraPos.mag()*prevPos.mag()!=0)
+		{
+			dp/=(cameraPos.mag()*prevPos.mag());
+			dp = StrictMath.acos(dp);
+			dp *= 180/StrictMath.PI;
+			//if(StrictMath.abs(dp)>90) cameraPos.scalar(-1);
+		}
+		
+	}
+		
+    if((cameraView==1)&&(nplanet==3))
+	{
+		if(cameraPos.mag()>0) cameraPos.changetounit();
+		double tempx = cameraPos.x;
+		double tempy = cameraPos.y;
+		double tempz = cameraPos.z;
+			
+		if(cameraPos.mag()>0)
+		{
+								
+			if(tempx!=0) 
+			{
+			
+				rotY = StrictMath.atan(tempy/tempx);
+				rotY *= 180/StrictMath.PI;
+				rotY -= 90;
+			}
+			if(tempx==0)
+			{
+				rotY = 0;
+			}
+			
+			rotX = StrictMath.abs(StrictMath.acos(tempz));
+			rotX *= 180/StrictMath.PI;
+			
+		}
+		posY = 0;
+		posX = 0;
+		
+		Double temp = new Double(tempx);
+		setPx.setText(temp.toString());
+		temp = new Double(tempy);
+		setPy.setText(temp.toString());
+		temp = new Double(tempz);
+		setPz.setText(temp.toString());
+		
+		
+		temp = new Double(rotX);
+		setRx.setText(temp.toString());
+		temp = new Double(rotY);
+		setRy.setText(temp.toString());
+				
+		
+	}
+
+    float sx = w / 4 + posX, sy = h / 4  + posY;
+    float dx = sx, dy = sy;
+    vector t;
+
+	
+    Graphics g2 = canvas1.getGraphics();
+
+    if (buffer == null) {
+      buffer = createImage(w, h);
+      buffer_g = buffer.getGraphics();
+      System.out.print("Creating Buffer...");
+
+      if (buffer == null) {
+        System.out.print("Failed");
+        return;
+      }
+      else
+        System.out.print("Succeeded");
+    }
+    buffer_g.setColor(new Color(128, 128, 128));
+    buffer_g.fillRect(0, 0, w, h);
+
+    //SortPlanets();
+
+
+    mat.unit();
+
+
+    mat.xrot(rotX);
+    mat.yrot(rotY);
+
+    mat.translate(0, 0, posZ);
+
+    if (pCenter >= 0){
+      mat.transform(planet[pCenter].r);
+      dx -= planet[pCenter].r.tx;
+      dy -= planet[pCenter].r.ty;
+    }
+
+    if (altDown) {
+      mat.transform(vX);
+      mat.transform(vY);
+      mat.transform(vZ);
+
+      buffer_g.setColor(colors[(nplanet + 1)%10]);
+      buffer_g.drawLine( (int) dx, (int) dy,
+                        (int) (vX.tx + dx), (int) (vX.ty + dy));
+      buffer_g.setColor(colors[(nplanet + 1)%10]);
+      buffer_g.drawLine( (int) dx, (int) dy,
+                        (int) (vY.tx + dx), (int) (vY.ty + dy));
+
+      buffer_g.setColor(colors[(nplanet + 2)%10]);
+      buffer_g.drawLine( (int) dx, (int) dy,
+                        (int) (vZ.tx + dx),
+                        (int) (vZ.ty + dy));
+      if(cameraPos.mag()!=0)
+      {
+      	cameraPos.changetounit();
+      	cameraPos.scalar(10);
+      	mat.transform(cameraPos);
+      	buffer_g.setColor(colors[(nplanet + 3)%10]);
+      	buffer_g.drawLine( (int) dx, (int) dy,
+        	               (int) (cameraPos.tx + dx), (int) (cameraPos.ty + dy));
+      
+      }
+    }
+
+    for (int i = 0; i < nplanet; i++) {
+      if (i != pCenter) {
+        buffer_g.setColor(colors[planet[i].id % 10]);
+        if (pCenter >= 0){
+          for (int j = 0; j < scrollTail.getValue() - 1; j++) {
+            mat.transform(planet[i].tail[j + 1]);
+            mat.transform(planet[pCenter].tail[j + 1]);
+            buffer_g.drawLine(planet[i].tail[j].tx + (int) sx - planet[pCenter].tail[j].tx,
+                              planet[i].tail[j].ty + (int) sy - planet[pCenter].tail[j].ty,
+                              planet[i].tail[j + 1].tx + (int) sx - planet[pCenter].tail[j+1].tx,
+                              planet[i].tail[j + 1].ty + (int) sy - planet[pCenter].tail[j+1].ty);
+          }
+        }else{
+          for (int j = 0; j < scrollTail.getValue() - 1; j++) {
+            mat.transform(planet[i].tail[j + 1]);
+            buffer_g.drawLine(planet[i].tail[j].tx + (int) dx,
+                              planet[i].tail[j].ty + (int) dy,
+                              planet[i].tail[j + 1].tx + (int) dx,
+                              planet[i].tail[j + 1].ty + (int) dy);
+          }
+        }
+      }
+    }
+    for (int i = 0; i < nplanet; i++) {
+      double z = mat.transform(planet[i].r);
+      buffer_g.setColor(colors[planet[i].id % 10]);
+      int radius = (int) StrictMath.round(StrictMath.sqrt(planet[i].mass) / z * 100.0);
+      buffer_g.fillOval(planet[i].r.tx - radius / 2 + (int) dx,
+                        planet[i].r.ty - radius / 2 + (int) dy,
+                        radius, radius);
+      mat.transform(planet[i].tail[0]);
+    }
+	if(cmon==true)	{
+		double nmass=0;
+		vector cm = new vector();
+		cm.set(0,0,0);
+		for(int i = 0; i < nplanet; i++) {
+			cm.add(planet[i].r, planet[i].mass);
+			nmass += planet[i].mass;
+		}
+		cm.scalar((double) 1.0/nmass);
+		int radius = (int) StrictMath.round(1 / mat.transform(cm) * 100);
+		buffer_g.setColor(colors[10]);
+		buffer_g.fillOval(cm.tx - radius / 2 + (int) dx,
+						  cm.ty - radius / 2 + (int) dy,
+						  radius, radius);
+	}
+	
+/*	if(nvon==true)	{
+		double nmass;
+		vector nv = new vector();
+		nv.set(0,0,0);
+		for(int i = 0; i < nplanet; i++) {
+			nv.add(planet[i].v, planet[i].mass);
+		}
+		int radius = (int) StrictMath.round(1 / mat.transform(nv) * 100);
+		buffer_g.setColor(colors[11]);
+		buffer_g.fillOval(nv.tx - radius / 2 + (int) dx,
+						  nv.ty - radius / 2 + (int) dy,
+						  radius, radius);
+	}
+*/
+    g2.drawImage(buffer, 0, 0, canvas1);
+  }
+
+  public void mouseClicked(MouseEvent e) {
+  }
+
+  public void mousePressed(MouseEvent e) {
+    prevX = e.getX();
+    prevY = e.getY();
+
+    e.consume();
+  }
+
+  public void mouseReleased(MouseEvent e) {
+    altDown = false;
+  }
+
+  public void mouseEntered(MouseEvent e) {
+  }
+
+  public void mouseExited(MouseEvent e) {
+  }
+
+  public void mouseDragged(MouseEvent e) {
+    int x = e.getX();
+    int y = e.getY();
+
+    if (e.isShiftDown()) {
+      altDown = true;
+      float xtheta = (prevY - y) * (360.0f / w);
+      float ytheta = (x - prevX) * (360.0f / h);
+
+      rotX += xtheta;
+      rotY += ytheta;
+
+//      if (rotX > 90)
+//        rotX = 90;
+//      if (rotX < -90)
+//        rotX = -90;
+    }
+    else if (e.isAltDown()) {
+      altDown = false;
+      int dy = y - prevY;
+      posZ -= dy*.5;
+
+      if (posZ < 2)
+        posZ = 2;
+      else if (posZ > 1000)
+        posZ = 1000;
+    }
+    else {
+      altDown = false;
+      posY -= (prevY - y);
+      posX += (x - prevX);
+    }
+
+    prevX = x;
+    prevY = y;
+    e.consume();
+    repaint();
+  }
+
+  public void mouseMoved(MouseEvent e) {
+  }
+
+  public void start() {
+    if (thread == null) {
+      thread = new Thread(this);
+      thread.setPriority(Thread.MIN_PRIORITY);
+      thread.start();
+    }
+  }
+
+  public synchronized void stop() {
+    thread = null;
+  }
+
+  public void run() {
+    Thread me = Thread.currentThread();
+    while (thread == me) {
+      if (!pause) {
+        RunPlanets();
+      }
+      repaint();
+      thread.yield();
+      try{
+        thread.sleep(10);
+      }catch (Throwable t) {};
+    }
+    thread = null;
+  }
+
+  void CalculateAccelerations() {
+    double distance;
+    vector radius = new vector();
+
+    for (int i = 0; i < nplanet; i++) {
+      planet[i].a.set(0,0,0);
+    }
+
+    for (int i = 0; i < nplanet; i++) {
+      for (int j = i + 1; j < nplanet; j++) {
+        if (planet[i] != null && planet[j] != null) {
+          //distance vector
+          radius.copy(planet[i].r, 1);
+          radius.add(planet[j].r, -1);
+          distance = radius.mag();
+
+          //acceleration
+          radius.scalar(1 / (distance * distance * distance));
+
+          planet[i].a.add(radius, planet[j].mass*-1);
+          planet[j].a.add(radius, planet[i].mass);
+        }
+      }
+    }
+  }
+
+  void UpdatePlanets() {
+	framenum++;
+	Long tLong = new Long(framenum);
+	frameCount.setText(tLong.toString());
+	if(framenum%100==0) 
+	{	shadeOfRed++;
+		if(shadeOfRed>=255) shadeOfRed=255;
+		frameCount.setBackground(new Color(255,shadeOfRed,shadeOfRed));
+	}
+	
+	
+	vector relativePos = new vector();
+	vector projection = new vector();
+	vector perpcomp = new vector();
+
+	double distance;
+	double newDistance;
+	double maxAccel;
+	double numDot;
+	double denDot;
+
+	CalculateAccelerations();
+	maxAccel = 0;
+
+	// For each pair of planets i and j
+	for (int i = 0; i < nplanet; i++) {
+		Planet pi = planet[i];
+		
+		if (pi.a.mag() > maxAccel)
+			maxAccel = pi.a.mag();
+			for (int j = i + 1; j < nplanet; j++) {
+			Planet pj = planet[j];
+			double distance1 = pi.r.distance(pj.r);
+			double distance2 = pi.nextPosition().distance(pj.nextPosition());
+			
+			if ((distance1 - distance2) * 2 > distance2) { //collision happens
+				if (pi.v.dot(pj.v) < 0) {
+					shadeOfRed=0;
+					double mi = pi.mass;
+					double mj = pj.mass;
+					
+					vector vi = new vector();
+					vi.add(pi.v, mi-mj);
+					vi.add(pj.v, 2*mj);
+					vi.scalar(1/(mi+mj));
+						
+					vector vj = new vector();
+					vj.add(pi.v, 2*mi);
+					vj.add(pj.v, mj-mi);
+					vj.scalar(1/(mi+mj));
+					
+					pi.v = vi;
+					pj.v = vj;
+					pi.a.scalar(0);
+					pj.a.scalar(0);
+					}
+				}
+			}
+		}
+
+	// Update position and velocity based on calculated acceleration
+	if (maxAccel < 0.5)
+		Planet.LEN = 500;
+	if (maxAccel > 0.5)
+		Planet.LEN = 100;
+	if (maxAccel > 1)
+		Planet.LEN = 25;
+	if (maxAccel > 1.5)
+		Planet.LEN = 10;
+	if (Planet.LEN == 500)
+		btnSnap.setBackground(Color.white);
+	if (Planet.LEN == 100)
+		btnSnap.setBackground(Color.blue);
+	if (Planet.LEN == 25)
+		btnSnap.setBackground(Color.green);
+	if (Planet.LEN == 10)
+		btnSnap.setBackground(Color.red);
+	for (int i = 0; i < nplanet; i++)
+		planet[i].Update();
+	//update text in the relative distance box
+	if (disTrack == true) {
+		String t1 = tracker1.getText();
+		String t2 = tracker2.getText();
+		StringTokenizer val1 = new StringTokenizer(t1, " ,\t\n\r\f");
+		int b1 = Integer.parseInt(val1.nextToken());
+		StringTokenizer val2 = new StringTokenizer(t2, " ,\t\n\r\f");
+		int b2 = Integer.parseInt(val2.nextToken());
+		b1--;
+		b2--;
+		if ((b1 != b2) && (b1 >= 0) && (b1 < nplanet) && (b2 >= 0)
+				&& (b2 < nplanet)) {
+			vector relativeRadius = planet[b1].r.diff(planet[b2].r); //subtract position of second planet
+			distance = relativeRadius.mag();
+			Double dd = new Double(distance);
+			trackerR.setText(dd.toString());
+			}
+		}
+	}
+	
+	private vector centerOfMass(vector r1, vector r2, double m1, double m2) {
+		vector c = new vector();
+		c.add(r1, m1);
+		c.add(r2, m2);
+		c.scalar(1/(m1+m2));
+		return c;
+	}
+
+  void RunPlanets() {
+//    Planet.LEN = tailLen.getValue();
+    	for (int i = 0; i < scrollSpeed.getValue(); i++) {
+      UpdatePlanets();
+    }
+  }
+
+  void iteratePlanets() {
+    pause = false;
+    iterate.setBackground(Color.black);
+    String text = stoptime.getText();
+    StringTokenizer ival = new StringTokenizer(text, " ,\t\n\r\f");
+    float iv = Float.valueOf(ival.nextToken()).floatValue();
+    for (int i = 0; i < iv ; i++) {
+      UpdatePlanets();
+    }
+    iterate.setBackground(Color.white);
+    pause = true;
+  }
+
+
+  void Center() {
+    rotX = 0;
+    rotY = 0;
+    posX = 0;
+    posY = 0;
+    posZ = 10;
+    pCenter = -1;
+  }
+
+  void Snap() {
+    String text = setPx.getText();
+    StringTokenizer sx = new StringTokenizer(text, " ,\t\n\r\f");
+    posX = Float.valueOf(sx.nextToken()).floatValue();
+    
+    text = setPy.getText();
+    StringTokenizer sy = new StringTokenizer(text, " ,\t\n\r\f");
+    posY = Float.valueOf(sy.nextToken()).floatValue();
+    
+    text = setPz.getText();
+    StringTokenizer sz = new StringTokenizer(text, " ,\t\n\r\f");
+    posZ = Float.valueOf(sz.nextToken()).floatValue();
+    if(posZ<=2) posZ = 2; 
+    if(posZ>=1000) posZ = 1000;
+    
+    text = setRx.getText();
+    StringTokenizer rx = new StringTokenizer(text, " ,\t\n\r\f");
+    rotX = Double.valueOf(rx.nextToken()).doubleValue();
+    
+    text = setRy.getText();
+    StringTokenizer ry = new StringTokenizer(text, " ,\t\n\r\f");
+    rotY = Double.valueOf(ry.nextToken()).doubleValue();
+    pCenter=-1;
+  }
+  public void actionPerformed(ActionEvent e) {
+    if (e.getActionCommand() == "pause") {
+      pause = !pause;
+      if (pause) btnPause.setLabel("Resume");
+      else btnPause.setLabel("Pause");
+    }
+    else if (e.getActionCommand() == "start") {
+      reStart();
+    }
+    else if (e.getActionCommand() == "center") {
+      pCenter++;
+      if (pCenter >= nplanet)
+        pCenter = -1;
+    }
+    else if (e.getActionCommand() == "prev") {
+      ReadPlanets(curFile - 1);
+    }
+    else if (e.getActionCommand() == "next") {
+      ReadPlanets(curFile + 1);
+    }
+    else if (e.getActionCommand() == "save") {
+      SavePlanets();
+    }
+    else if (e.getActionCommand() == "origin") {
+      Center();
+    }
+    else if (e.getActionCommand() == "Snap") {
+      Snap();
+    }
+    else if (e.getActionCommand() == "iterate") {
+      iteratePlanets();
+    }
+	 else if (e.getActionCommand() == "TogMass") {
+	  cmon = !cmon;
+	  if(cmon == true)
+	  {
+	  	  CenMass.setForeground(Color.white);
+	  	  CenMass.setBackground(Color.black);
+	  }
+      if(cmon == false)
+      {
+      	  CenMass.setForeground(Color.black);
+      	  CenMass.setBackground(Color.white);
+      }
+	}
+	else if (e.getActionCommand() == "TogVel") {
+	  disTrack = !disTrack;
+	  if(disTrack == true) NetVel.setBackground(colors[11]);
+	  if(disTrack == false) NetVel.setBackground(Color.white);
+	      
+	}
+	else if (e.getActionCommand() == "CameraShift")
+	{
+		cameraView++;
+		if(cameraView==2) cameraView=0;
+		if(cameraView==0) cameraType.setLabel("FreeCamera");
+		if(cameraView==1) cameraType.setLabel("Cross 3");
+	}
+  }
+
+  void SortPlanets() {
+    int min = -1;
+
+    for (int i = 0; i < nplanet; i++) {
+      min = i;
+      for (int j = i; j < nplanet; j++) {
+        if (planet[j].r.tz < planet[min].r.tz) {
+          min = j;
+        }
+        if (min != i) {
+          Planet temp = planet[i];
+          planet[i] = planet[min];
+          planet[min] = temp;
+        }
+      }
+    }
+  }
+}
+
+class Planet {
+  public static int TAIL = 10000;
+  public static double STEP = 0.001;
+  public static int iter = 0;
+  public static int LEN = 1000;
+  public double time = 0;
+
+  public vector r = new vector(); //position vector
+  public vector a = new vector(); //acceleration vector
+  public vector v = new vector(); //velocity vector
+  public vector tail[];
+
+  public double mass;
+  public int id;
+
+  Planet(double rx, double ry, double rz, double vx, double vy, double vz,
+         double imass) {
+    v.set(vx, vy, vz);
+    r.set(rx, ry, rz);
+    mass = imass;
+
+    tail = new vector[TAIL];
+    for (int i = 0; i < TAIL; i++) {
+      tail[i] = new vector();
+      tail[i].copy(r, 1);
+    }
+  }
+
+  Planet() {
+  }
+
+  void Update() {
+
+    v.add(a, STEP);
+    r.add(v, STEP);
+
+    time++;
+    if (time > LEN) {
+      UpdateTail();
+      time = 0;
+    }
+  }
+  void UpdateTail() {
+    for (int i = TAIL - 2; i >= 0; i--) {
+      tail[i + 1].copy(tail[i], 1);
+    }
+    tail[0].copy(r, 1);
+  }
+  
+  vector nextPosition() {
+		vector r2 = new vector(r);
+		r2.add(v, Planet.STEP);
+		r2.add(a, Planet.STEP*Planet.STEP);
+		return r2;
+	}
+}
+
+class vector {
+  public double x, y, z;
+  public int tx, ty, tz;
+
+  vector() {
+    set(0, 0, 0);
+  }
+  
+  vector(double x, double y, double z) {
+		set(x, y, z);
+  }
+
+  vector(vector c)
+  {
+  	copy(c,1);
+  }
+
+  void set(double ix, double iy, double iz) {
+    x = ix;
+    y = iy;
+    z = iz;
+  }
+
+  void add(vector v, double s) {
+    x += v.x * s;
+    y += v.y * s;
+    z += v.z * s;
+  }
+
+    vector diff(vector v2) {
+		return new vector(x-v2.x, y-v2.y, z-v2.z);
+	}
+
+  void copy(vector v, double s) {
+    x = v.x * s;
+    y = v.y * s;
+    z = v.z * s;
+  }
+
+  void scalar(double s) {
+    x *= s;
+    y *= s;
+    z *= s;
+  }
+
+  double mag() {
+    return StrictMath.sqrt(x * x + y * y + z * z);
+  }
+
+  double dot(vector v) {
+    return x*v.x + y*v.y + z*v.z;
+  }
+
+  double distance(vector v) {
+	double dz = z-v.z;
+	double dy = y-v.y;
+	double dx = x-v.x;
+	return StrictMath.sqrt(dx*dx + dy*dy + dz*dz);
+  }
+
+  void changetounit() {
+    double adj = mag();
+    x /= adj;
+    y /= adj;
+    z /= adj;
+  }
+  void cross(vector v, vector w)
+  {
+  	x = w.y*v.z-w.z*v.y;
+  	y = w.z*v.x-w.x*v.z;
+  	z = w.x*v.y-w.y*v.x;
+  	
+  }
+
+  boolean isParallel(vector s)
+  {
+    if ( (x * s.y - y * s.x) == 0 & (x * s.z - z * s.x) == 0 &
+        (y * s.z - z * s.y) == 0)
+   {
+      if (x * s.x < 0 | y * s.y < 0 | z * s.z < 0) {
+        return true;
+      }
+    }
+    return false;
+  }
+  
+
+}
+
+class Matrix3D {
+  float xx, xy, xz, xo;
+  float yx, yy, yz, yo;
+  float zx, zy, zz, zo;
+  static final double pi = 3.14159265;
+  /** Create a new unit matrix */
+  Matrix3D() {
+    xx = 1.0f;
+    yy = 1.0f;
+    zz = 1.0f;
+  }
+
+  /** Scale by f in all dimensions */
+  void scale(float f) {
+    xx *= f;
+    xy *= f;
+    xz *= f;
+    xo *= f;
+    yx *= f;
+    yy *= f;
+    yz *= f;
+    yo *= f;
+    zx *= f;
+    zy *= f;
+    zz *= f;
+    zo *= f;
+  }
+
+  /** Scale along each axis independently */
+  void scale(float xf, float yf, float zf) {
+    xx *= xf;
+    xy *= xf;
+    xz *= xf;
+    xo *= xf;
+    yx *= yf;
+    yy *= yf;
+    yz *= yf;
+    yo *= yf;
+    zx *= zf;
+    zy *= zf;
+    zz *= zf;
+    zo *= zf;
+  }
+
+  /** Translate the origin */
+  void translate(float x, float y, float z) {
+    xo += x;
+    yo += y;
+    zo += z;
+  }
+
+  /** rotate theta degrees about the y axis */
+  void yrot(double theta) {
+    theta *= (pi / 180);
+    double ct = StrictMath.cos(theta);
+    double st = StrictMath.sin(theta);
+
+    float Nxx = (float) (xx * ct + zx * st);
+    float Nxy = (float) (xy * ct + zy * st);
+    float Nxz = (float) (xz * ct + zz * st);
+    float Nxo = (float) (xo * ct + zo * st);
+
+    float Nzx = (float) (zx * ct - xx * st);
+    float Nzy = (float) (zy * ct - xy * st);
+    float Nzz = (float) (zz * ct - xz * st);
+    float Nzo = (float) (zo * ct - xo * st);
+
+    xo = Nxo;
+    xx = Nxx;
+    xy = Nxy;
+    xz = Nxz;
+    zo = Nzo;
+    zx = Nzx;
+    zy = Nzy;
+    zz = Nzz;
+  }
+
+  /** rotate theta degrees about the x axis */
+  void xrot(double theta) {
+    theta += 180;
+    theta *= (pi / 180);
+    double ct = StrictMath.cos(theta);
+    double st = StrictMath.sin(theta);
+
+    float Nyx = (float) (yx * ct + zx * st);
+    float Nyy = (float) (yy * ct + zy * st);
+    float Nyz = (float) (yz * ct + zz * st);
+    float Nyo = (float) (yo * ct + zo * st);
+
+    float Nzx = (float) (zx * ct - yx * st);
+    float Nzy = (float) (zy * ct - yy * st);
+    float Nzz = (float) (zz * ct - yz * st);
+    float Nzo = (float) (zo * ct - yo * st);
+
+    yo = Nyo;
+    yx = Nyx;
+    yy = Nyy;
+    yz = Nyz;
+    zo = Nzo;
+    zx = Nzx;
+    zy = Nzy;
+    zz = Nzz;
+  }
+
+  /** rotate theta degrees about the z axis */
+  void zrot(double theta) {
+    theta *= (pi / 180);
+    double ct = StrictMath.cos(theta);
+    double st = StrictMath.sin(theta);
+
+    float Nyx = (float) (yx * ct + xx * st);
+    float Nyy = (float) (yy * ct + xy * st);
+    float Nyz = (float) (yz * ct + xz * st);
+    float Nyo = (float) (yo * ct + xo * st);
+
+    float Nxx = (float) (xx * ct - yx * st);
+    float Nxy = (float) (xy * ct - yy * st);
+    float Nxz = (float) (xz * ct - yz * st);
+    float Nxo = (float) (xo * ct - yo * st);
+
+    yo = Nyo;
+    yx = Nyx;
+    yy = Nyy;
+    yz = Nyz;
+    xo = Nxo;
+    xx = Nxx;
+    xy = Nxy;
+    xz = Nxz;
+  }
+
+  /** Multiply this matrix by a second: M = M*R */
+  void mult(Matrix3D rhs) {
+    float lxx = xx * rhs.xx + yx * rhs.xy + zx * rhs.xz;
+    float lxy = xy * rhs.xx + yy * rhs.xy + zy * rhs.xz;
+    float lxz = xz * rhs.xx + yz * rhs.xy + zz * rhs.xz;
+    float lxo = xo * rhs.xx + yo * rhs.xy + zo * rhs.xz + rhs.xo;
+
+    float lyx = xx * rhs.yx + yx * rhs.yy + zx * rhs.yz;
+    float lyy = xy * rhs.yx + yy * rhs.yy + zy * rhs.yz;
+    float lyz = xz * rhs.yx + yz * rhs.yy + zz * rhs.yz;
+    float lyo = xo * rhs.yx + yo * rhs.yy + zo * rhs.yz + rhs.yo;
+
+    float lzx = xx * rhs.zx + yx * rhs.zy + zx * rhs.zz;
+    float lzy = xy * rhs.zx + yy * rhs.zy + zy * rhs.zz;
+    float lzz = xz * rhs.zx + yz * rhs.zy + zz * rhs.zz;
+    float lzo = xo * rhs.zx + yo * rhs.zy + zo * rhs.zz + rhs.zo;
+
+    xx = lxx;
+    xy = lxy;
+    xz = lxz;
+    xo = lxo;
+
+    yx = lyx;
+    yy = lyy;
+    yz = lyz;
+    yo = lyo;
+
+    zx = lzx;
+    zy = lzy;
+    zz = lzz;
+    zo = lzo;
+  }
+
+  /** Reinitialize to the unit matrix */
+  void unit() {
+    xo = 0;
+    xx = 1;
+    xy = 0;
+    xz = 0;
+    yo = 0;
+    yx = 0;
+    yy = 1;
+    yz = 0;
+    zo = 0;
+    zx = 0;
+    zy = 0;
+    zz = 1;
+  }
+
+  double transform(vector v) {
+    double lxx = xx, lxy = xy, lxz = xz, lxo = xo;
+    double lyx = yx, lyy = yy, lyz = yz, lyo = yo;
+    double lzx = zx, lzy = zy, lzz = zz, lzo = zo;
+
+    double z = (v.x * lzx + v.y * lzy + v.z * lzz + lzo);
+    double s = 1000.0 / z;
+
+    v.tz = (int) z;
+    v.tx = (int) ((v.x * lxx + v.y * lxy + v.z * lxz + lxo)*s);
+    v.ty = (int) ((v.x * lyx + v.y * lyy + v.z * lyz + lyo)*s);
+
+    return z;
+  }
+
+  public String toString() {
+    return ("[" + xo + "," + xx + "," + xy + "," + xz + ";"
+            + yo + "," + yx + "," + yy + "," + yz + ";"
+            + zo + "," + zx + "," + zy + "," + zz + "]");
+  }
+}

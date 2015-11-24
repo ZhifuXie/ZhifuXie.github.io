@@ -1,0 +1,97 @@
+.mstheme
+{
+	separator-image: url(bluhorsd.gif);
+	list-image-1: url(blubul1d.gif);
+	list-image-2: url(blubul2d.gif);
+	list-image-3: url(blubul3d.gif);
+
+	nav-banner-image: url(blubannd.gif);
+
+	navbutton-horiz-normal: url(bluhbudd.gif);
+	navbutton-horiz-pushed: url(bluhbusd.gif);
+
+	navbutton-vert-normal: url(bluvbudd.gif);
+	navbutton-vert-pushed: url(bluvbusd.gif);
+
+	navbutton-home-normal: url(bluhombd.gif);
+
+	navbutton-next-normal: url(blunexbd.gif);
+
+	navbutton-prev-normal: url(bluprebd.gif);
+
+	navbutton-up-normal: url(bluupbd.gif);
+
+}
+
+.mstheme-bannertxt
+{
+	font-family: "Century Gothic", Arial, Helvetica;
+	color: rgb(0, 0, 102);
+	text-align: center;
+	vertical-align: middle;
+}
+.mstheme-horiz-navtxt
+{
+	font-family: Arial, Helvetica;
+
+	color: rgb(51, 0, 153);
+	text-align: center;
+	vertical-align: middle;
+}
+
+.mstheme-vert-navtxt
+{
+	font-family: Arial, Helvetica;
+
+	color: rgb(51, 0, 153);
+	text-align: center;
+	vertical-align: middle;
+}
+
+.mstheme-navtxthome
+{
+	font-family: Arial, Helvetica;
+
+	color: rgb(51,0,153);
+	text-align: center;
+	vertical-align: middle;
+}
+
+.mstheme-navtxtnext
+{
+	font-family: Arial, Helvetica;
+
+	color: rgb(51,0,153);
+	text-align: center;
+	vertical-align: middle;
+}
+
+.mstheme-navtxtprev
+{
+	font-family: Arial, Helvetica;
+
+	color: rgb(51,0,153);
+	text-align: center;
+	vertical-align: middle;
+}
+
+.mstheme-navtxtup
+{
+	font-family: Arial, Helvetica;
+
+	color: rgb(51,0,153);
+	text-align: center;
+	vertical-align: middle;
+}
+UL
+{ 
+	list-style-image: url(blubul1d.gif);
+}
+UL UL
+{
+	list-style-image: url(blubul2d.gif);
+}
+UL UL UL
+{
+	list-style-image: url(blubul3d.gif);
+}

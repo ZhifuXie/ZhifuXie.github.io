@@ -1,0 +1,94 @@
+a:link
+{
+	color: rgb(51,102,255);
+}
+a:visited
+{
+	color: rgb(153,0,255);
+}
+a:active
+{
+	color: rgb(0,0,102);
+}
+body
+{
+	color: rgb(0,51,153);
+	background-color: rgb(255,255,255);
+}
+h1
+{
+	color: rgb(102,0,102);
+}
+h2, marquee
+{
+	color: rgb(102,0,102);
+}
+h3
+{
+	color: rgb(102,0,102);
+}
+h4
+{
+	color: rgb(102,0,102);
+}
+h5
+{
+	color: rgb(102,0,102);
+}
+h6
+{
+	color: rgb(102,0,102);
+}
+HR
+{
+	color: rgb(102,0,102);
+}
+BUTTON 
+{
+	background-color: rgb(102,0,102);	
+	border-color: rgb(51,102,255);
+	color: white;
+}
+LABEL, .MSTHEME-LABEL
+{
+	color: rgb(0,51,153);
+}
+TEXTAREA
+{
+	border-color: rgb(0,51,153);
+	color: black;
+}
+FIELDSET
+{
+	border-color: rgb(0,51,153);
+	color: Black;
+}
+LEGEND
+{
+	color: rgb(102,0,102);
+}
+SELECT
+{
+	border-color: rgb(0,51,153);
+	color: black;
+}
+TABLE
+{
+	table-border-color-light: rgb(51,102,255);
+	table-border-color-dark: rgb(0,51,153);
+	border-color: rgb(0,51,153);
+	color: rgb(0,51,153);
+}
+CAPTION 
+{
+	color: rgb(102,0,102);
+}
+TH
+{
+	color: rgb(0,51,153);
+	border-color: rgb(0,51,153);
+}
+TD
+{
+	border-color: rgb(0,51,153);
+}	
